@@ -4,6 +4,7 @@ const GAME_WIDTH = 512;
 const GAME_HEIGHT = 768;
 const USE_FREQUENCY = 60;
 const FALL_SPEED = 3.2;
+const PLAYER_SPEED = 3.2;
 
 const TILE_SIZE = 32;
 const TILE_MULT = TILE_SIZE / 16;
@@ -25,10 +26,12 @@ worldTilesetImage.src = "./assets/sprites/world_tileset.png";
 const knightImage = new Image();
 knightImage.src = "./assets/sprites/knight.png";
 
-collectList = [];
+let collectList = [];
+let keys = new Set();
 
 class Sprite {
   framePosition = 0;
+  onGround = false;
 
   constructor({ position, image, frameList }) {
     this.position = position;
@@ -54,11 +57,8 @@ class Sprite {
   }
 
   applyFall() {
-    //BOUNCE
     if (this.position.y + TILE_SIZE * 2 >= GAME_HEIGHT) {
-      console.log(this.position.y);
-      // this.position.y = GAME_HEIGHT - this.height;
-      //NOT BOUNCE
+      this.onGround = true;
     } else {
       this.position.y += FALL_SPEED;
     }
@@ -72,10 +72,74 @@ class Sprite {
   }
 }
 
+class Knight {
+  constructor({ image }) {
+    this.position = {
+      x: GAME_WIDTH / 2 - TILE_SIZE,
+      y: GAME_HEIGHT - TILE_SIZE * 2 - 24,
+    };
+    this.image = image;
+  }
+
+  draw() {
+    c.drawImage(
+      this.image,
+      0,
+      0,
+      32,
+      32,
+      this.position.x,
+      this.position.y,
+      TILE_SIZE * 2,
+      TILE_SIZE * 2
+    );
+
+    this.move();
+  }
+
+  move() {
+    let lastKey = Array.from(keys).pop();
+
+    if (lastKey == "w") {
+    } else if (lastKey == "a") {
+      if (this.position.x + 16 <= 0) {
+        return;
+      }
+
+      this.position.x -= PLAYER_SPEED;
+    } else if (lastKey == "s") {
+    } else if (lastKey == "d") {
+      if (this.position.x + TILE_SIZE + 16 >= GAME_WIDTH) {
+        return;
+      }
+
+      this.position.x += PLAYER_SPEED;
+    }
+  }
+
+  jump() {}
+
+  dash() {}
+}
+
+let knight = new Knight({ image: knightImage });
+let collectedAmount = 0;
+
 function animate() {
   c.fillStyle = "lightblue";
   c.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  drawFloor();
 
+  c.fillStyle = "black";
+  c.font = "24px Pixel";
+  c.textAlign = "left";
+  c.textBaseline = "top";
+  c.fillText(`Coins: ${collectedAmount}`, 10, 10);
+
+  knight.draw();
+  collectList = collectList.filter((sprite) => {
+    return !sprite.onGround;
+  });
   collectList.forEach((sprite) => {
     sprite.draw();
   });
@@ -99,8 +163,6 @@ function drawFloor() {
 
 setInterval(() => {
   animate();
-  drawFloor();
-  c.drawImage(knightImage, 0, 0, 32, 32, 0, 0, TILE_SIZE * 2, TILE_SIZE * 2);
 }, 1000 / USE_FREQUENCY);
 
 setInterval(() => {
@@ -116,4 +178,66 @@ setInterval(() => {
       image: coinImage,
     })
   );
-}, 100);
+}, 1000);
+
+window.addEventListener("keydown", (e) => {
+  switch (e.key) {
+    // case "w":
+    //   keys.add("w");
+    //   break;
+    case "a":
+      keys.add("a");
+      break;
+    // case "s":
+    //   keys.add("s");
+    //   break;
+    case "d":
+      keys.add("d");
+      break;
+  }
+});
+
+window.addEventListener("keyup", (e) => {
+  switch (e.key) {
+    // case "w":
+    //   keys.delete("w");
+    //   break;
+    case "a":
+      keys.delete("a");
+      break;
+    // case "s":
+    //   keys.delete("s");
+    //   break;
+    case "d":
+      keys.delete("d");
+      break;
+  }
+});
+
+// position: {x: ?, y: ?}
+// scale: { w: ?, h: ?}
+function checkColision(position1, scale1, position2, scale2) {}
+
+class teste {
+  carambolas = 0;
+
+  constructor(args) {
+    this.nome = args.nome;
+    this.idade = args.idade;
+  }
+}
+
+class testeFilho extends teste {
+  constructor(args) {
+    super(args);
+    this.nome_pai = args.nome_pai;
+  }
+}
+
+let testeInstance = new testeFilho({
+  nome: "jose",
+  idade: 24,
+  nome_pai: "claudio",
+});
+
+console.log("aqui", testeInstance);
