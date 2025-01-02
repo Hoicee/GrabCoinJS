@@ -1,97 +1,118 @@
 import * as global from "./global.js";
 
 export class Sprite {
-  framePosition = 0;
-  onGround = false;
+  #animationInterval = setInterval(() => {}, Infinity);
 
-  constructor({ ctx, position, image, frameList }) {
+  constructor({
+    ctx,
+    image,
+    position,
+    velocity,
+    scaleFactor,
+    cropPosition,
+    cropScale,
+    animationList,
+    animationCurr,
+    animationFrame,
+    animationFinished,
+    animationIntervalTime,
+  }) {
     this.ctx = ctx;
+    this.image = image;
     this.position = position;
-    this.image = image;
-    this.frameList = frameList;
-    this.animation(0.1);
+    this.velocity = velocity || { x: 0, y: 0 };
+    this.scaleFactor = scaleFactor || { w: 1, h: 1 };
+    this.cropPosition = cropPosition || { x: 0, y: 0 };
+    this.cropScale = cropScale || { w: image.width, h: image.height };
+
+    this.animationList = animationList || {};
+    this.animationCurr = animationCurr || "";
+    this.animationFrame = animationFrame || 0;
+    this.animationFinished = animationFinished || function () {};
+    this.animationIntervalTime = animationIntervalTime || 0;
+
+    this.resetAnimation();
   }
 
   draw() {
-    this.ctx.drawImage(
-      this.image,
-      16 * this.framePosition,
-      0,
-      16,
-      16,
-      this.position.x,
-      this.position.y,
-      global.TILE_SIZE,
-      global.TILE_SIZE
-    );
+    let canUseAnimation = this.canUseAnimation();
+    let frame = this.getAnimationFrame();
 
-    this.applyFall();
-  }
-
-  applyFall() {
-    if (this.position.y + global.TILE_SIZE * 2 >= global.GAME_HEIGHT) {
-      this.onGround = true;
-    } else {
-      this.position.y += global.FALL_SPEED;
-    }
-  }
-
-  animation(delay) {
-    setInterval(() => {
-      this.framePosition =
-        this.framePosition == 11 ? 0 : this.framePosition + 1;
-    }, 1000 * delay);
-  }
-}
-
-export class Knight {
-  constructor({ ctx, image, moveKeys }) {
-    this.ctx = ctx;
-    this.position = {
-      x: global.GAME_WIDTH / 2 - global.TILE_SIZE,
-      y: global.GAME_HEIGHT - global.TILE_SIZE * 2 - 24,
+    let cropScale = {
+      w: frame.w || this.cropScale.w,
+      h: frame.h || this.cropScale.h,
     };
-    this.image = image;
-    this.moveKeys = moveKeys;
-  }
 
-  draw() {
     this.ctx.drawImage(
       this.image,
-      0,
-      0,
-      32,
-      32,
+      canUseAnimation ? frame.x : this.cropPosition.x,
+      canUseAnimation ? frame.y : this.cropPosition.y,
+      cropScale.w,
+      cropScale.h,
       this.position.x,
       this.position.y,
-      global.TILE_SIZE * 2,
-      global.TILE_SIZE * 2
+      cropScale.w * this.scaleFactor.w,
+      cropScale.h * this.scaleFactor.h
     );
 
     this.move();
   }
 
+  getHeight() {
+    return (
+      (this.getAnimationFrame().h || this.cropScale.h) * this.scaleFactor.h
+    );
+  }
+
+  getWidth() {
+    return (
+      (this.getAnimationFrame().w || this.cropScale.w) * this.scaleFactor.w
+    );
+  }
+
   move() {
-    let lastKey = Array.from(this.moveKeys).pop();
+    this.position.x += this.velocity.x;
+    this.position.y += this.velocity.y;
+  }
 
-    if (lastKey == "w") {
-    } else if (lastKey == "a") {
-      if (this.position.x + 16 <= 0) {
-        return;
-      }
+  animate() {
+    if (!this.canUseAnimation) return;
+    this.animationFrame = this.animationFrame + 1;
 
-      this.position.x -= global.PLAYER_SPEED;
-    } else if (lastKey == "s") {
-    } else if (lastKey == "d") {
-      if (this.position.x + global.TILE_SIZE + 16 >= global.GAME_WIDTH) {
-        return;
-      }
-
-      this.position.x += global.PLAYER_SPEED;
+    if (this.animationFrame >= this.animationList[this.animationCurr].length) {
+      this.animationFrame = 0;
+      this.animationFinished(this);
     }
   }
 
-  jump() {}
+  resetAnimation() {
+    clearInterval(this.#animationInterval);
 
-  dash() {}
+    if (!this.canUseAnimation()) return;
+
+    this.animationFrame = 0;
+
+    this.#animationInterval = setInterval(() => {
+      this.animate();
+    }, this.animationIntervalTime);
+  }
+
+  changeAnimation(animationCurr, animationIntervalTime) {
+    this.animationIntervalTime = animationIntervalTime;
+
+    if (this.animationCurr != animationCurr) {
+      this.animationCurr = animationCurr;
+      this.resetAnimation();
+    }
+  }
+
+  canUseAnimation() {
+    return this.animationCurr != "" && this.animationCurr in this.animationList;
+  }
+
+  getAnimationFrame() {
+    return this.canUseAnimation()
+      ? this.animationList[this.animationCurr][this.animationFrame]
+      : {};
+  }
 }

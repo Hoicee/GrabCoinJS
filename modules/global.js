@@ -2,7 +2,7 @@ export const GAME_WIDTH = 512;
 export const GAME_HEIGHT = 768;
 
 export const FALL_SPEED = 3.2;
-export const PLAYER_SPEED = 4.8;
+export const PLAYER_SPEED = 3.2;
 
 export const TILE_DEFAULT = 16;
 export const TILE_SIZE = 32;

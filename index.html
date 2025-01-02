@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GrabCoinJS</title>
+    <link rel="icon" type="image/png" href="./assets/ico/coin-ico.png" />
+    <script defer src="animations.js"></script>
+    <script defer type="module" src="index.js"></script>
+
     <style>
       * {
         box-sizing: border-box;
@@ -20,7 +24,8 @@
       }
 
       canvas {
-        border: 10px solid black;
+        border: 4px solid white;
+        border-radius: 6px;
       }
 
       @font-face {
@@ -28,7 +33,6 @@
         src: url("./assets/fonts/PixelOperator8.ttf");
       }
     </style>
-    <script defer type="module" src="index.js"></script>
   </head>
   <body>
     <canvas class="main-layer"></canvas>
