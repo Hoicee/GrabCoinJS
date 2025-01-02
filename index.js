@@ -1,17 +1,11 @@
+import * as global from "./modules/global.js";
+import { Sprite, Knight } from "./modules/model.js";
+import { loadImages, getRandomIntInRange } from "./modules/helper.js";
+
 const canvas = document.querySelector(".main-layer");
-// CONTEXT
-const GAME_WIDTH = 512;
-const GAME_HEIGHT = 768;
-const USE_FREQUENCY = 60;
-const FALL_SPEED = 3.2;
-const PLAYER_SPEED = 3.2;
-
-const TILE_SIZE = 32;
-const TILE_MULT = TILE_SIZE / 16;
-
 const c = canvas.getContext("2d");
-canvas.width = GAME_WIDTH;
-canvas.height = GAME_HEIGHT;
+canvas.width = global.GAME_WIDTH;
+canvas.height = global.GAME_HEIGHT;
 
 // Disable image smoothing (this will make the image scale without blur)
 c.imageSmoothingEnabled = false; // For modern browsers
@@ -19,115 +13,22 @@ c.mozImageSmoothingEnabled = false; // For Firefox (older versions)
 c.webkitImageSmoothingEnabled = false; // For WebKit-based browsers (e.g., Safari)
 c.msImageSmoothingEnabled = false; // For IE/Edge
 
+//LOADING ALL IMAGES
 const coinImage = new Image();
 coinImage.src = "./assets/sprites/coin.png";
 const worldTilesetImage = new Image();
 worldTilesetImage.src = "./assets/sprites/world_tileset.png";
 const knightImage = new Image();
 knightImage.src = "./assets/sprites/knight.png";
+await loadImages([coinImage, worldTilesetImage, knightImage]);
 
 let collectList = [];
-let keys = new Set();
-
-class Sprite {
-  framePosition = 0;
-  onGround = false;
-
-  constructor({ position, image, frameList }) {
-    this.position = position;
-    this.image = image;
-    this.frameList = frameList;
-    this.animation(0.1);
-  }
-
-  draw() {
-    c.drawImage(
-      this.image,
-      16 * this.framePosition,
-      0,
-      16,
-      16,
-      this.position.x,
-      this.position.y,
-      TILE_SIZE,
-      TILE_SIZE
-    );
-
-    this.applyFall();
-  }
-
-  applyFall() {
-    if (this.position.y + TILE_SIZE * 2 >= GAME_HEIGHT) {
-      this.onGround = true;
-    } else {
-      this.position.y += FALL_SPEED;
-    }
-  }
-
-  animation(delay) {
-    setInterval(() => {
-      this.framePosition =
-        this.framePosition == 11 ? 0 : this.framePosition + 1;
-    }, 1000 * delay);
-  }
-}
-
-class Knight {
-  constructor({ image }) {
-    this.position = {
-      x: GAME_WIDTH / 2 - TILE_SIZE,
-      y: GAME_HEIGHT - TILE_SIZE * 2 - 24,
-    };
-    this.image = image;
-  }
-
-  draw() {
-    c.drawImage(
-      this.image,
-      0,
-      0,
-      32,
-      32,
-      this.position.x,
-      this.position.y,
-      TILE_SIZE * 2,
-      TILE_SIZE * 2
-    );
-
-    this.move();
-  }
-
-  move() {
-    let lastKey = Array.from(keys).pop();
-
-    if (lastKey == "w") {
-    } else if (lastKey == "a") {
-      if (this.position.x + 16 <= 0) {
-        return;
-      }
-
-      this.position.x -= PLAYER_SPEED;
-    } else if (lastKey == "s") {
-    } else if (lastKey == "d") {
-      if (this.position.x + TILE_SIZE + 16 >= GAME_WIDTH) {
-        return;
-      }
-
-      this.position.x += PLAYER_SPEED;
-    }
-  }
-
-  jump() {}
-
-  dash() {}
-}
-
-let knight = new Knight({ image: knightImage });
 let collectedAmount = 0;
+let knight = new Knight({ ctx: c, image: knightImage, moveKeys: new Set() });
 
 function animate() {
   c.fillStyle = "lightblue";
-  c.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  c.fillRect(0, 0, global.GAME_WIDTH, global.GAME_HEIGHT);
   drawFloor();
 
   c.fillStyle = "black";
@@ -146,7 +47,7 @@ function animate() {
 }
 
 function drawFloor() {
-  for (let i = 0; i < GAME_WIDTH; i += TILE_SIZE) {
+  for (let i = 0; i < global.GAME_WIDTH; i += global.TILE_SIZE) {
     c.drawImage(
       worldTilesetImage,
       0,
@@ -154,23 +55,26 @@ function drawFloor() {
       16,
       16,
       i,
-      GAME_HEIGHT - TILE_SIZE,
-      TILE_SIZE,
-      TILE_SIZE
+      global.GAME_HEIGHT - global.TILE_SIZE,
+      global.TILE_SIZE,
+      global.TILE_SIZE
     );
   }
 }
 
 setInterval(() => {
   animate();
-}, 1000 / USE_FREQUENCY);
+}, 1000 / 60);
 
 setInterval(() => {
-  const upperBound = GAME_WIDTH - TILE_SIZE - 10;
-  const random = Math.floor(Math.random() * (upperBound - 10 + 1)) + 10;
+  const random = getRandomIntInRange(
+    10,
+    global.GAME_WIDTH - global.TILE_SIZE - 10
+  );
 
   collectList.push(
     new Sprite({
+      ctx: c,
       position: {
         x: random,
         y: 16,
@@ -182,62 +86,22 @@ setInterval(() => {
 
 window.addEventListener("keydown", (e) => {
   switch (e.key) {
-    // case "w":
-    //   keys.add("w");
-    //   break;
     case "a":
-      keys.add("a");
+      knight.moveKeys.add("a");
       break;
-    // case "s":
-    //   keys.add("s");
-    //   break;
     case "d":
-      keys.add("d");
+      knight.moveKeys.add("d");
       break;
   }
 });
 
 window.addEventListener("keyup", (e) => {
   switch (e.key) {
-    // case "w":
-    //   keys.delete("w");
-    //   break;
     case "a":
-      keys.delete("a");
+      knight.moveKeys.delete("a");
       break;
-    // case "s":
-    //   keys.delete("s");
-    //   break;
     case "d":
-      keys.delete("d");
+      knight.moveKeys.delete("d");
       break;
   }
 });
-
-// position: {x: ?, y: ?}
-// scale: { w: ?, h: ?}
-function checkColision(position1, scale1, position2, scale2) {}
-
-class teste {
-  carambolas = 0;
-
-  constructor(args) {
-    this.nome = args.nome;
-    this.idade = args.idade;
-  }
-}
-
-class testeFilho extends teste {
-  constructor(args) {
-    super(args);
-    this.nome_pai = args.nome_pai;
-  }
-}
-
-let testeInstance = new testeFilho({
-  nome: "jose",
-  idade: 24,
-  nome_pai: "claudio",
-});
-
-console.log("aqui", testeInstance);
