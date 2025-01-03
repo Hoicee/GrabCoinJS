@@ -12,18 +12,18 @@ const c = canvas.getContext("2d");
 canvas.width = global.GAME_WIDTH;
 canvas.height = global.GAME_HEIGHT;
 
-// Disable image smoothing (this will make the image scale without blur)
-c.imageSmoothingEnabled = false; // For modern browsers
-c.mozImageSmoothingEnabled = false; // For Firefox (older versions)
-c.webkitImageSmoothingEnabled = false; // For WebKit-based browsers (e.g., Safari)
-c.msImageSmoothingEnabled = false; // For IE/Edge
+// Disable image smoothing
+c.imageSmoothingEnabled = false;
+c.mozImageSmoothingEnabled = false;
+c.webkitImageSmoothingEnabled = false;
+c.msImageSmoothingEnabled = false;
 
-//LOADING ALL IMAGES
+//LOADING ALL ASSETS
 const coinImage = new Image();
-coinImage.src = "./assets/sprites/coin.png";
 const worldTilesetImage = new Image();
-worldTilesetImage.src = "./assets/sprites/world_tileset.png";
 const knightImage = new Image();
+coinImage.src = "./assets/sprites/coin.png";
+worldTilesetImage.src = "./assets/sprites/world_tileset.png";
 knightImage.src = "./assets/sprites/knight.png";
 await loadImages([coinImage, worldTilesetImage, knightImage]);
 
@@ -55,32 +55,35 @@ knight.position.y = global.GAME_HEIGHT - global.TILE_SIZE - knight.getHeight();
 
 let collectList = [];
 let collectedAmount = 0;
-
 let moveKeys = new Set();
 let lastDirection = "";
+let lastCoinPosition = 0;
+let coinRange = {
+  min: 10,
+  max: global.GAME_WIDTH - global.TILE_SIZE - 10,
+};
+let map = [];
+
+//GENERATING THE GROUND
+for (let i = 0; i < global.GAME_WIDTH; i += global.TILE_SIZE) {
+  map.push(
+    new Sprite({
+      ctx: c,
+      image: worldTilesetImage,
+      position: { x: i, y: global.GAME_HEIGHT - global.TILE_SIZE },
+      scaleFactor: { w: 2, h: 2 },
+      cropScale: { w: 16, h: 16 },
+    })
+  );
+}
 
 window.addEventListener("keydown", (e) => {
   gameMusic.play();
-
-  switch (e.key) {
-    case "a":
-      moveKeys.add("a");
-      break;
-    case "d":
-      moveKeys.add("d");
-      break;
-  }
+  if (e.key == "a" || e.key == "d") moveKeys.add(e.key);
 });
 
 window.addEventListener("keyup", (e) => {
-  switch (e.key) {
-    case "a":
-      moveKeys.delete("a");
-      break;
-    case "d":
-      moveKeys.delete("d");
-      break;
-  }
+  if (e.key == "a" || e.key == "d") moveKeys.delete(e.key);
 });
 
 function knightMovement() {
@@ -128,6 +131,7 @@ function filterCollectList() {
     if (colideWithKnight) {
       coinSound.play();
       collectedAmount++;
+      return false;
     }
 
     if (
@@ -135,63 +139,20 @@ function filterCollectList() {
       global.GAME_HEIGHT - global.TILE_SIZE
     ) {
       explosionSound.play();
+      knight.changeAnimation("hit", 200);
+      knight.lockAnimation(200);
+      return false;
     }
 
-    return (
-      coin.position.y + coin.getHeight() <
-        global.GAME_HEIGHT - global.TILE_SIZE && !colideWithKnight
-    );
+    return true;
   });
 }
 
-function drawFloor() {
-  for (let i = 0; i < global.GAME_WIDTH; i += global.TILE_SIZE) {
-    c.drawImage(
-      worldTilesetImage,
-      0,
-      0,
-      16,
-      16,
-      i,
-      global.GAME_HEIGHT - global.TILE_SIZE,
-      global.TILE_SIZE,
-      global.TILE_SIZE
-    );
-  }
+function drawMap() {
+  map.forEach((sprite) => sprite.draw());
 }
 
-function animate() {
-  c.fillStyle = "lightblue";
-  c.fillRect(0, 0, global.GAME_WIDTH, global.GAME_HEIGHT);
-  drawFloor();
-
-  drawText(c, `Coins: ${collectedAmount}`, {
-    textSize: "24px",
-    fontFamily: "pixel",
-    position: { x: 10, y: 10 },
-  });
-
-  knightMovement();
-  knight.draw();
-
-  filterCollectList();
-  collectList.forEach((sprite) => {
-    sprite.draw();
-  });
-}
-
-setInterval(() => {
-  animate();
-}, 1000 / 60);
-
-let lastCoinPosition = 0;
-let coinRange = {
-  min: 10,
-  max: global.GAME_WIDTH - global.TILE_SIZE - 10,
-};
-
-//GENERATE COINS
-setInterval(() => {
+function generateCoins() {
   let random = getRandomIntInRange(coinRange.min, coinRange.max);
 
   while (Math.abs(random - lastCoinPosition) < 50) {
@@ -206,8 +167,8 @@ setInterval(() => {
 
   lastCoinPosition = random;
   coinRange = {
-    min: lastCoinPosition - 200,
-    max: lastCoinPosition + 200,
+    min: lastCoinPosition - 180,
+    max: lastCoinPosition + 180,
   };
 
   collectList.push(
@@ -224,4 +185,27 @@ setInterval(() => {
       animationIntervalTime: 100,
     })
   );
-}, 1000);
+}
+
+function animate() {
+  c.fillStyle = "lightblue";
+  c.fillRect(0, 0, global.GAME_WIDTH, global.GAME_HEIGHT);
+  drawMap();
+
+  drawText(c, `Coins: ${collectedAmount}`, {
+    textSize: "24px",
+    fontFamily: "pixel",
+    position: { x: 10, y: 10 },
+  });
+
+  knightMovement();
+  knight.draw();
+
+  filterCollectList();
+  collectList.forEach((sprite) => {
+    sprite.draw();
+  });
+}
+
+setInterval(animate, 1000 / 60);
+setInterval(generateCoins, 1000);

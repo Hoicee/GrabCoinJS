@@ -1,7 +1,8 @@
 import * as global from "./global.js";
 
 export class Sprite {
-  #animationInterval = setInterval(() => {}, Infinity);
+  #animationInterval = null;
+  #animationLock = false; // Flag to lock animation changes
 
   constructor({
     ctx,
@@ -35,7 +36,6 @@ export class Sprite {
   }
 
   draw() {
-    let canUseAnimation = this.canUseAnimation();
     let frame = this.getAnimationFrame();
 
     let cropScale = {
@@ -45,8 +45,8 @@ export class Sprite {
 
     this.ctx.drawImage(
       this.image,
-      canUseAnimation ? frame.x : this.cropPosition.x,
-      canUseAnimation ? frame.y : this.cropPosition.y,
+      frame.x || this.cropPosition.x,
+      frame.y || this.cropPosition.y,
       cropScale.w,
       cropScale.h,
       this.position.x,
@@ -76,7 +76,7 @@ export class Sprite {
   }
 
   animate() {
-    if (!this.canUseAnimation) return;
+    if (!this.canUseAnimation()) return;
     this.animationFrame = this.animationFrame + 1;
 
     if (this.animationFrame >= this.animationList[this.animationCurr].length) {
@@ -88,22 +88,29 @@ export class Sprite {
   resetAnimation() {
     clearInterval(this.#animationInterval);
 
-    if (!this.canUseAnimation()) return;
-
     this.animationFrame = 0;
-
-    this.#animationInterval = setInterval(() => {
-      this.animate();
-    }, this.animationIntervalTime);
+    this.#animationInterval = setInterval(
+      () => this.animate(),
+      this.animationIntervalTime
+    );
   }
 
   changeAnimation(animationCurr, animationIntervalTime) {
+    if (this.#animationLock) return; // Prevent change if animation is locked
     this.animationIntervalTime = animationIntervalTime;
 
     if (this.animationCurr != animationCurr) {
       this.animationCurr = animationCurr;
       this.resetAnimation();
     }
+  }
+
+  // Lock the animation for a specified duration
+  lockAnimation(duration) {
+    this.#animationLock = true;
+    setTimeout(() => {
+      this.#animationLock = false;
+    }, duration);
   }
 
   canUseAnimation() {
