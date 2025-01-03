@@ -34,7 +34,7 @@ export function drawText(
   text,
   {
     color = "black",
-    textSize = "12px",
+    textSize = "16px",
     fontFamily = "arial",
     textAlign = "left",
     textBaseline = "top",

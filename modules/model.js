@@ -2,7 +2,7 @@ import * as global from "./global.js";
 
 export class Sprite {
   #animationInterval = null;
-  #animationLock = false; // Flag to lock animation changes
+  #animationLock = false;
 
   constructor({
     ctx,
@@ -96,7 +96,7 @@ export class Sprite {
   }
 
   changeAnimation(animationCurr, animationIntervalTime) {
-    if (this.#animationLock) return; // Prevent change if animation is locked
+    if (this.#animationLock) return;
     this.animationIntervalTime = animationIntervalTime;
 
     if (this.animationCurr != animationCurr) {
@@ -105,7 +105,6 @@ export class Sprite {
     }
   }
 
-  // Lock the animation for a specified duration
   lockAnimation(duration) {
     this.#animationLock = true;
     setTimeout(() => {
